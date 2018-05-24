@@ -14,7 +14,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
-	controller "gitlab.brickchain.com/libs/go-controller.v2"
 )
 
 type contextKey string
@@ -50,7 +49,6 @@ func GetRequestID(ctx context.Context) (requestID string, ok bool) {
 // Wrapper is the struct for holding wrapper related things
 type Wrapper struct {
 	prod        bool
-	bsvc        controller.BindingService
 	middlewares []func(req Request, res Response) (Response, error)
 }
 
@@ -60,11 +58,6 @@ func NewWrapper(prod bool) *Wrapper {
 		prod:        prod,
 		middlewares: make([]func(req Request, res Response) (Response, error), 0),
 	}
-}
-
-// SetBindingService sets a BindingService to use for the wrapper
-func (wrapper *Wrapper) SetBindingService(bsvc controller.BindingService) {
-	wrapper.bsvc = bsvc
 }
 
 // AddMiddleware ...
@@ -109,36 +102,17 @@ func (wrapper *Wrapper) Wrap(h interface{}) httprouter.Handle {
 		switch x := h.(type) {
 		case func(Request) Response:
 			f = x
-		case func(RequestWithBinding) Response:
-			if wrapper.bsvc == nil {
-				err := errors.New("No BindingService set")
-				req.Log().Error(err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			f = addBinding(wrapper.bsvc, x)
 		case func(AuthenticatedRequest) Response:
 			f = addAuthentication(x)
 		case func(OptionalAuthenticatedRequest) Response:
 			f = addOptionalAuthentication(x)
-		case func(AuthenticatedRequestWithBinding) Response:
-			if wrapper.bsvc == nil {
-				err := errors.New("No BindingService set")
-				req.Log().Error(err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			f = addAuthentication(addAuthenticatedBinding(wrapper.bsvc, x))
 		case func(ActionRequest) Response:
 			f = parseAction(x)
-		case func(ActionRequestWithBinding) Response:
-			if wrapper.bsvc == nil {
-				err := errors.New("No BindingService set")
-				req.Log().Error(err)
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			f = parseAction(addActionBinding(wrapper.bsvc, x))
+		default:
+			err := errors.New("Unknown type signature")
+			req.Log().Error(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		// Wrap the handler and catch panics
