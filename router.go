@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Brickchain/go-httphandler.v2/middleware"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/julienschmidt/httprouter"
-	"gitlab.brickchain.com/libs/go-httphandler.v2/middleware"
 )
 
 var allowedHeaders = []string{"Accept", "Accept-Language", "Content-Language", "Content-Type", "Origin", "Authorization", "X-Auth-Token"}
