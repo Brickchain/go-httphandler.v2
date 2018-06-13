@@ -8,6 +8,7 @@ import (
 
 	"github.com/Brickchain/go-crypto.v2"
 	"github.com/Brickchain/go-document.v2"
+	logger "github.com/Brickchain/go-logger.v1"
 	"github.com/pkg/errors"
 	jose "gopkg.in/square/go-jose.v1"
 )
@@ -162,30 +163,36 @@ func parseMandates(token *document.MandateToken) ([]AuthenticatedMandate, Respon
 	for _, mandateString := range token.Mandates {
 		mandateJWS, err := crypto.UnmarshalSignature([]byte(mandateString))
 		if err != nil {
-			return nil, NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to unmarshal mandate"))
+			logger.Debug(errors.Wrap(err, "failed to unmarshal mandate"))
+			continue
 		}
 
 		if len(mandateJWS.Signatures) < 1 {
-			return nil, NewErrorResponse(http.StatusBadRequest, errors.New("No signers of mandate"))
+			logger.Debug(errors.New("No signers of mandate"))
+			continue
 		}
 
 		mandatePayload, err := mandateJWS.Verify(mandateJWS.Signatures[0].Header.JsonWebKey)
 		if err != nil {
-			return nil, NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to verify mandate signature"))
+			logger.Debug(errors.Wrap(err, "failed to verify mandate signature"))
+			continue
 		}
 
 		var mandate *document.Mandate
 		err = json.Unmarshal(mandatePayload, &mandate)
 		if err != nil {
-			return nil, NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to unmarshal mandate"))
+			logger.Debug(errors.Wrap(err, "failed to unmarshal mandate"))
+			continue
 		}
 
 		if mandate.ValidFrom.After(time.Now().UTC()) {
-			return nil, NewErrorResponse(http.StatusBadRequest, errors.New("Mandate is not yet valid"))
+			logger.Debug(errors.New("Mandate is not yet valid"))
+			continue
 		}
 
 		if !mandate.ValidUntil.IsZero() && mandate.ValidUntil.Before(time.Now().UTC()) {
-			return nil, NewErrorResponse(http.StatusBadRequest, errors.New("Mandate has expired"))
+			logger.Debug("Mandate expired")
+			continue
 		}
 
 		signingKey := mandateJWS.Signatures[0].Header.JsonWebKey
@@ -193,7 +200,8 @@ func parseMandates(token *document.MandateToken) ([]AuthenticatedMandate, Respon
 		if mandate.GetCertificate() != "" {
 			chain, err := crypto.VerifyCertificate(mandate.GetCertificate(), 10)
 			if err != nil {
-				return nil, NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "Could not verify certificate chain"))
+				logger.Debug(errors.Wrap(err, "could not verify certificate chain"))
+				continue
 			}
 
 			signingKey = chain.Issuer

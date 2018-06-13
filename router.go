@@ -9,8 +9,14 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+var exposedHeaders = []string{"Content-Language", "Content-Type", "X-Boot-Mode"}
 var allowedHeaders = []string{"Accept", "Accept-Language", "Content-Language", "Content-Type", "Origin", "Authorization", "X-Auth-Token"}
 var allowedMethods = []string{"GET", "POST", "PUT", "DELETE"}
+
+// SetExposedHeaders sets the headers we expose in CORS
+func SetExposedHeaders(h []string) {
+	exposedHeaders = h
+}
 
 // SetAllowedHeaders sets the headers we allow in CORS
 func SetAllowedHeaders(h []string) {
@@ -30,8 +36,9 @@ func NewRouter() *httprouter.Router {
 // LoadMiddlewares adds the middlewares for CORS and Server and proxy headers
 func LoadMiddlewares(router *httprouter.Router, version string) http.Handler {
 	headersOk := gorillaHandlers.AllowedHeaders(allowedHeaders)
+	exposedHeadersOK := gorillaHandlers.ExposedHeaders(exposedHeaders)
 	methodsOk := gorillaHandlers.AllowedMethods(allowedMethods)
-	handler := gorillaHandlers.CORS(headersOk, methodsOk)(router)
+	handler := gorillaHandlers.CORS(headersOk, methodsOk, exposedHeadersOK)(router)
 	handler = middleware.ResponseHeader(handler, "Server", os.Args[0]+"/"+version)
 	handler = gorillaHandlers.ProxyHeaders(handler)
 
