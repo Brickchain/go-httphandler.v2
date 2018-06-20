@@ -100,6 +100,15 @@ func (wrapper *Wrapper) Wrap(h interface{}) httprouter.Handle {
 
 		var f func(Request) Response
 		switch x := h.(type) {
+		case func(http.ResponseWriter, *http.Request, httprouter.Params):
+			x(w, r, p)
+			return
+		case func(http.ResponseWriter, *http.Request, httprouter.Params) error:
+			if err := x(w, r, p); err != nil {
+				req.Log().Error(err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			return
 		case func(Request) Response:
 			f = x
 		case func(AuthenticatedRequest) Response:
