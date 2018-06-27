@@ -185,13 +185,18 @@ func parseMandates(token *document.MandateToken) ([]AuthenticatedMandate, Respon
 			continue
 		}
 
-		if mandate.ValidFrom.After(time.Now().UTC()) {
+		if mandate.ValidFrom == nil || mandate.Timestamp.After(time.Now().UTC()) {
 			logger.Debug(errors.New("Mandate is not yet valid"))
 			continue
 		}
 
-		if !mandate.ValidUntil.IsZero() && mandate.ValidUntil.Before(time.Now().UTC()) {
-			logger.Debug("Mandate expired")
+		if mandate.ValidFrom != nil && mandate.ValidFrom.After(time.Now().UTC()) {
+			logger.Debug(errors.New("Mandate is not yet valid"))
+			continue
+		}
+
+		if mandate.ValidUntil != nil && mandate.ValidUntil.Before(time.Now().UTC()) {
+			logger.Debug("Mandate has expired")
 			continue
 		}
 
