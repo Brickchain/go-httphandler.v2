@@ -91,7 +91,7 @@ func parseAction(h func(ActionRequest) Response) func(Request) Response {
 		}
 
 		mandates := make([]AuthenticatedMandate, 0)
-		for _, m := range action.Mandates {
+		for i, m := range action.Mandates {
 			mandateSig, err := crypto.UnmarshalSignature([]byte(m))
 			if err != nil {
 				return NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to unmarshal mandate JWS"))
@@ -126,7 +126,13 @@ func parseAction(h func(ActionRequest) Response) func(Request) Response {
 			}
 
 			if crypto.Thumbprint(actionCertificate.Issuer) != crypto.Thumbprint(mandate.Recipient) {
-				return NewErrorResponse(http.StatusBadRequest, errors.New("Mandate recipient mismatch"))
+				if len(action.Mandates) > i {
+					action.Mandates = append(action.Mandates[:i], action.Mandates[i+1:]...)
+				} else {
+					action.Mandates = action.Mandates[:i]
+				}
+
+				continue
 			}
 
 			mandates = append(mandates, AuthenticatedMandate{
