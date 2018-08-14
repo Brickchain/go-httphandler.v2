@@ -90,7 +90,18 @@ func parseAction(h func(ActionRequest) Response) func(Request) Response {
 			}
 		}
 
+		_, signers, subject, err := crypto.VerifyDocumentWithCertificateChain(action, actionCertificate.KeyLevel)
+		if err != nil {
+			return NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to verify certificate chain"))
+		}
+		thumbprints := make([]string, 0)
+		thumbprints = append(thumbprints, crypto.Thumbprint(subject))
+		for _, k := range signers {
+			thumbprints = append(thumbprints, crypto.Thumbprint(k))
+		}
+
 		mandates := make([]AuthenticatedMandate, 0)
+	MANDATE_LOOP:
 		for i, m := range action.Mandates {
 			mandateSig, err := crypto.UnmarshalSignature([]byte(m))
 			if err != nil {
@@ -125,20 +136,23 @@ func parseAction(h func(ActionRequest) Response) func(Request) Response {
 				signingKey = mandateCertificate.Issuer
 			}
 
-			if crypto.Thumbprint(actionCertificate.Issuer) != crypto.Thumbprint(mandate.Recipient) {
-				if len(action.Mandates) > i {
-					action.Mandates = append(action.Mandates[:i], action.Mandates[i+1:]...)
-				} else {
-					action.Mandates = action.Mandates[:i]
+			mandateThumbprint := crypto.Thumbprint(mandate.Recipient)
+			for _, t := range thumbprints {
+				if mandateThumbprint == t {
+					mandates = append(mandates, AuthenticatedMandate{
+						Mandate: mandate,
+						Signer:  signingKey,
+					})
+					continue MANDATE_LOOP
 				}
-
-				continue
 			}
 
-			mandates = append(mandates, AuthenticatedMandate{
-				Mandate: mandate,
-				Signer:  signingKey,
-			})
+			if len(action.Mandates) > i {
+				action.Mandates = append(action.Mandates[:i], action.Mandates[i+1:]...)
+			} else {
+				action.Mandates = action.Mandates[:i]
+			}
+
 		}
 
 		r := &authenticatedActionRequest{
