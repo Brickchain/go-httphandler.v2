@@ -90,14 +90,21 @@ func parseAction(h func(ActionRequest) Response) func(Request) Response {
 			}
 		}
 
-		_, signers, subject, err := crypto.VerifyDocumentWithCertificateChain(action, actionCertificate.KeyLevel)
-		if err != nil {
-			return NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to verify certificate chain"))
-		}
 		thumbprints := make([]string, 0)
-		thumbprints = append(thumbprints, crypto.Thumbprint(subject))
-		for _, k := range signers {
-			thumbprints = append(thumbprints, crypto.Thumbprint(k))
+		if action.GetCertificate() != "" {
+			_, signers, subject, err := crypto.VerifyDocumentWithCertificateChain(action, actionCertificate.KeyLevel)
+			if err != nil {
+				return NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to verify certificate chain"))
+			}
+			thumbprints = append(thumbprints, crypto.Thumbprint(subject))
+			for _, k := range signers {
+				thumbprints = append(thumbprints, crypto.Thumbprint(k))
+			}
+		} else {
+			thumbprints = append(thumbprints, crypto.Thumbprint(actionCertificate.Issuer))
+			if crypto.Thumbprint(actionCertificate.Issuer) != crypto.Thumbprint(actionCertificate.Subject) {
+				thumbprints = append(thumbprints, crypto.Thumbprint(actionCertificate.Subject))
+			}
 		}
 
 		mandates := make([]AuthenticatedMandate, 0)
