@@ -3,6 +3,7 @@ package httphandler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/Brickchain/go-crypto.v2"
 	"github.com/Brickchain/go-document.v2"
@@ -141,6 +142,16 @@ func parseAction(h func(ActionRequest) Response) func(Request) Response {
 				}
 
 				signingKey = mandateCertificate.Issuer
+			}
+
+			ts := time.Now()
+
+			if mandate.ValidFrom != nil && ts.Before(*mandate.ValidFrom) {
+				continue MANDATE_LOOP
+			}
+
+			if mandate.ValidUntil != nil && ts.After(*mandate.ValidUntil) {
+				continue MANDATE_LOOP
 			}
 
 			mandateThumbprint := crypto.Thumbprint(mandate.Recipient)
