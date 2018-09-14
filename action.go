@@ -132,7 +132,7 @@ func parseAction(h func(ActionRequest) Response) func(Request) Response {
 
 			var mandateCertificate *document.Certificate
 			if mandate.Certificate != "" {
-				mandateCertificate, err = crypto.VerifyCertificate(mandate.Certificate, 1) // mandates are signed by the realm root key or the realm signing key
+				mandateCertificate, err = crypto.VerifyCertificate(mandate.Certificate, 10)
 				if err != nil {
 					return NewErrorResponse(http.StatusBadRequest, errors.Wrap(err, "failed to verify mandate certificate chain"))
 				}
