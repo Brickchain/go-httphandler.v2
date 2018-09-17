@@ -89,7 +89,9 @@ func addOptionalAuthentication(h func(OptionalAuthenticatedRequest) Response) fu
 
 		userKey, token, err := parseMandateToken(req)
 		if err != nil {
-			return err
+			if req.Header().Get("Authorization") != "" {
+				return err
+			}
 		}
 
 		if token != nil {
