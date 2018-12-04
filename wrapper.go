@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/text/language"
+
 	logger "github.com/Brickchain/go-logger.v1"
 	"github.com/julienschmidt/httprouter"
 	"github.com/pkg/errors"
@@ -49,6 +51,7 @@ func GetRequestID(ctx context.Context) (requestID string, ok bool) {
 // Wrapper is the struct for holding wrapper related things
 type Wrapper struct {
 	prod        bool
+	matcher     language.Matcher
 	middlewares []func(req Request, res Response) (Response, error)
 }
 
@@ -56,8 +59,14 @@ type Wrapper struct {
 func NewWrapper(prod bool) *Wrapper {
 	return &Wrapper{
 		prod:        prod,
+		matcher:     language.NewMatcher([]language.Tag{language.English}),
 		middlewares: make([]func(req Request, res Response) (Response, error), 0),
 	}
+}
+
+// SetTags sets what languages should be matched, first entry is the default
+func (wrapper *Wrapper) SetTags(tags []language.Tag) {
+	wrapper.matcher = language.NewMatcher(tags)
 }
 
 // AddMiddleware ...
@@ -70,7 +79,11 @@ func (wrapper *Wrapper) Wrap(h interface{}) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 		start := time.Now()
 
-		req := newStandardRequest(w, r, p)
+		lang, _ := r.Cookie("lang")
+		accept := r.Header.Get("Accept-Language")
+		t, _ := language.MatchStrings(wrapper.matcher, lang.String(), accept)
+
+		req := newStandardRequest(w, r, p, t)
 
 		var err error
 

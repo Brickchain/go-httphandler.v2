@@ -10,6 +10,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 )
 
 // Request is the base interface for HTTP requests
@@ -23,22 +25,26 @@ type Request interface {
 	URL() *url.URL
 	Body() ([]byte, error)
 	Log() *logger.Entry
+	Tag() language.Tag
+	Printer() *message.Printer
 }
 
 // standardRequest implements the Request interface
 type standardRequest struct {
-	id     string
-	req    *http.Request
-	res    http.ResponseWriter
-	ctx    context.Context
-	header http.Header
-	params httprouter.Params
-	url    *url.URL
-	log    *logger.Entry
+	id      string
+	req     *http.Request
+	res     http.ResponseWriter
+	ctx     context.Context
+	header  http.Header
+	params  httprouter.Params
+	url     *url.URL
+	log     *logger.Entry
+	tag     language.Tag
+	printer *message.Printer
 }
 
 // newStandardRequest returns a new standardRequest object with the request-id and logger setup
-func newStandardRequest(w http.ResponseWriter, r *http.Request, params httprouter.Params) *standardRequest {
+func newStandardRequest(w http.ResponseWriter, r *http.Request, params httprouter.Params, tag language.Tag) *standardRequest {
 	reqID := uuid.Must(uuid.NewV4()).String()
 	fields := logger.Fields{
 		"request-id":   reqID,
@@ -52,15 +58,18 @@ func newStandardRequest(w http.ResponseWriter, r *http.Request, params httproute
 		"request-size": r.ContentLength,
 	}
 	l := logger.WithFields(fields)
+	p := message.NewPrinter(tag)
 	return &standardRequest{
-		id:     reqID,
-		req:    r,
-		res:    w,
-		ctx:    r.Context(),
-		header: r.Header,
-		params: params,
-		url:    r.URL,
-		log:    l,
+		id:      reqID,
+		req:     r,
+		res:     w,
+		ctx:     r.Context(),
+		header:  r.Header,
+		params:  params,
+		url:     r.URL,
+		log:     l,
+		tag:     tag,
+		printer: p,
 	}
 }
 
@@ -119,4 +128,14 @@ func (r *standardRequest) Body() ([]byte, error) {
 // Log returns a logger with the request context fields set
 func (r *standardRequest) Log() *logger.Entry {
 	return r.log
+}
+
+// Tag returns the language tag for the request
+func (r *standardRequest) Tag() language.Tag {
+	return r.tag
+}
+
+// Printer returns the printer that formats messages tailored to language tag.
+func (r *standardRequest) Printer() *message.Printer {
+	return r.printer
 }
