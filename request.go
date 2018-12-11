@@ -27,6 +27,7 @@ type Request interface {
 	Log() *logger.Entry
 	Tag() language.Tag
 	Printer() *message.Printer
+	ErrorResponse(int, error) *ErrorResponse
 }
 
 // standardRequest implements the Request interface
@@ -138,4 +139,20 @@ func (r *standardRequest) Tag() language.Tag {
 // Printer returns the printer that formats messages tailored to language tag.
 func (r *standardRequest) Printer() *message.Printer {
 	return r.printer
+}
+
+// ErrorResponse returns an an error response with a language formatted message.
+// If err is nil, NewError returns a new error otherwise it wraps it.
+func (r *standardRequest) ErrorResponse(err error, statusCode int, key string, a ...interface{}) *ErrorResponse {
+	var message string
+	if r.printer != nil {
+		message = r.printer.Sprintf(key, a)
+	} else {
+		message = key
+	}
+	if err != nil {
+		return NewErrorResponse(statusCode, errors.Wrap(err, message))
+	} else {
+		return NewErrorResponse(statusCode, errors.New(message))
+	}
 }
