@@ -27,7 +27,7 @@ type Request interface {
 	Log() *logger.Entry
 	Tag() language.Tag
 	Printer() *message.Printer
-	ErrorResponse(int, error) *ErrorResponse
+	ErrorResponse(error, int, string, ...interface{}) *ErrorResponse
 }
 
 // standardRequest implements the Request interface
