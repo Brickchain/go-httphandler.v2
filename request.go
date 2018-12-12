@@ -146,7 +146,7 @@ func (r *standardRequest) Printer() *message.Printer {
 func (r *standardRequest) ErrorResponse(err error, statusCode int, key string, a ...interface{}) *ErrorResponse {
 	var message string
 	if r.printer != nil {
-		message = r.printer.Sprintf(key, a)
+		message = r.printer.Sprintf(key, a...)
 	} else {
 		message = key
 	}
