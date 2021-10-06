@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Brickchain/go-crypto.v2"
-	"github.com/Brickchain/go-document.v2"
+	"github.com/IpsoVeritas/crypto"
+	"github.com/IpsoVeritas/document"
 	"github.com/pkg/errors"
 	jose "gopkg.in/square/go-jose.v1"
 )

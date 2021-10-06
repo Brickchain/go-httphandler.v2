@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
-	logger "github.com/Brickchain/go-logger.v1"
+	"github.com/IpsoVeritas/logger"
 	"github.com/julienschmidt/httprouter"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
@@ -46,7 +46,7 @@ type standardRequest struct {
 
 // newStandardRequest returns a new standardRequest object with the request-id and logger setup
 func newStandardRequest(w http.ResponseWriter, r *http.Request, params httprouter.Params, tag language.Tag) *standardRequest {
-	reqID := uuid.Must(uuid.NewV4()).String()
+	reqID := uuid.NewV4().String()
 	fields := logger.Fields{
 		"request-id":   reqID,
 		"host":         r.Host,

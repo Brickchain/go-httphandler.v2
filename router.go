@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/Brickchain/go-httphandler.v2/middleware"
+	"github.com/IpsoVeritas/httphandler/middleware"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/julienschmidt/httprouter"
 )

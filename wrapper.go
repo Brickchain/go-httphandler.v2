@@ -12,15 +12,15 @@ import (
 
 	"golang.org/x/text/language"
 
-	logger "github.com/Brickchain/go-logger.v1"
+	"github.com/IpsoVeritas/logger"
 	"github.com/julienschmidt/httprouter"
 	"github.com/pkg/errors"
 	uuid "github.com/satori/go.uuid"
 )
 
-type contextKey string
+type ContextKey string
 
-const requestIDKey = contextKey("requestID")
+const RequestIDKey = ContextKey("requestID")
 
 var dontLogAgents = []string{"GoogleHC", "Go-http-client", "kube-probe"}
 
@@ -34,9 +34,9 @@ func AddRequestID(h http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		reqID := r.Header.Get("X-Request-ID")
 		if reqID == "" {
-			reqID = uuid.Must(uuid.NewV4()).String()
+			reqID = uuid.NewV4().String()
 		}
-		ctx := context.WithValue(r.Context(), requestIDKey, reqID)
+		ctx := context.WithValue(r.Context(), RequestIDKey, reqID)
 		h.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
@@ -44,7 +44,7 @@ func AddRequestID(h http.Handler) http.Handler {
 
 // GetRequestID is a helper to get the request id from the context
 func GetRequestID(ctx context.Context) (requestID string, ok bool) {
-	requestID, ok = ctx.Value(requestIDKey).(string)
+	requestID, ok = ctx.Value(RequestIDKey).(string)
 	return
 }
 

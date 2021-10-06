@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Brickchain/go-crypto.v2"
-	"github.com/Brickchain/go-document.v2"
-	logger "github.com/Brickchain/go-logger.v1"
+	"github.com/IpsoVeritas/crypto"
+	"github.com/IpsoVeritas/document"
+	"github.com/IpsoVeritas/logger"
 	"github.com/pkg/errors"
 	jose "gopkg.in/square/go-jose.v1"
 )
